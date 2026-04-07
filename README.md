@@ -45,6 +45,15 @@ The agent receives structured descriptions of processed Channel State Informatio
 
 ---
 
+## Real-World Applications
+
+- **Eldercare:** Detect falls without cameras, preserving dignity and privacy
+- **Smart home:** Passive occupancy detection and activity-aware automation
+- **Security:** Intrusion detection using existing WiFi infrastructure
+- **Healthcare:** Non-invasive rehabilitation monitoring
+
+---
+
 ## Environment Variables
 
 | Variable | Description | Default |
@@ -194,15 +203,6 @@ Tested with `Qwen/Qwen2.5-72B-Instruct`, seed=42:
 | sequence_classify | ~0.650 |
 | fall_detection | ~0.272 |
 | **Average** | **~0.407** |
-
----
-
-## Real-World Applications
-
-- **Eldercare:** Detect falls without cameras, preserving dignity and privacy
-- **Smart home:** Passive occupancy detection and activity-aware automation
-- **Security:** Intrusion detection using existing WiFi infrastructure
-- **Healthcare:** Non-invasive rehabilitation monitoring
 
 ---
 
