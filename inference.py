@@ -14,11 +14,9 @@ import os
 import sys
 import time
 import traceback
-
 import subprocess
-import sys
 
-# Auto-install required packages if missing
+
 for pkg in ["openai", "openenv-core", "httpx", "pydantic"]:
     try:
         __import__(pkg.replace("-", "_"))
@@ -28,10 +26,17 @@ for pkg in ["openai", "openenv-core", "httpx", "pydantic"]:
 # Ensure local modules are importable
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from openai import OpenAI
+try:
+    from openai import OpenAI
+except Exception:
+    OpenAI = None
 
-from wifi_har.environment import WiFiHAREnvironment, TASKS
-from models import WiFiHARAction
+try:
+    from wifi_har.environment import WiFiHAREnvironment, TASKS
+    from models import WiFiHARAction
+except ImportError as e:
+    print(f"Import error: {e}", file=sys.stderr)
+    sys.exit(1)
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
@@ -51,7 +56,22 @@ SEED         = 42
 
 _client = None
 
-def get_client() -> OpenAI:
+def rule_based(obs_text: str) -> str:
+    text = obs_text.lower()
+
+    if "very high" in text and "very strong" in text:
+        return "fall"
+
+    if "strong (" in text or "moderate (" in text:
+        if "movement intensity: high" in text or "very high" in text:
+            return "walking"
+
+    if "moderate" in text:
+        return "transition"
+
+    return "static"
+
+def get_client():
     global _client
     if _client is None:
         _client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
@@ -76,9 +96,14 @@ static, walking, transition, or fall"""
 # ── Agent ─────────────────────────────────────────────────────────────────────
 
 def agent_act(observation_text: str, history: list) -> str:
+    # If OpenAI not available → fallback immediately
+    if OpenAI is None:
+        return rule_based(observation_text)
+
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     messages.extend(history[-8:])
     messages.append({"role": "user", "content": observation_text})
+
     try:
         resp = get_client().chat.completions.create(
             model=MODEL_NAME,
@@ -86,13 +111,25 @@ def agent_act(observation_text: str, history: list) -> str:
             max_tokens=10,
             temperature=0.1,
         )
+
         raw = resp.choices[0].message.content.strip().lower()
-        for label in ["static", "walking", "transition", "fall"]:
+
+        # STRICT check first
+        if raw in ["static", "walking", "transition", "fall"]:
+            return raw
+
+        # SOFT parsing
+        for label in ["fall", "walking", "transition", "static"]:
             if label in raw:
                 return label
-        return raw
-    except Exception:
-        return "static"
+
+        # Only fallback if completely unusable
+        return rule_based(observation_text)
+
+    except Exception as e:
+        # Only here we fallback
+        print("LLM ERROR:", e)
+        return rule_based(observation_text)
 
 # ── Task runner ───────────────────────────────────────────────────────────────
 
