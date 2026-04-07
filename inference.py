@@ -14,29 +14,25 @@ import os
 import sys
 import time
 import traceback
-import subprocess
-
-
-for pkg in ["openai", "openenv-core", "httpx", "pydantic"]:
-    try:
-        __import__(pkg.replace("-", "_"))
-    except ImportError:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", pkg, "--quiet"])
 
 # Ensure local modules are importable
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# Safely import OpenAI
 try:
     from openai import OpenAI
 except Exception:
     OpenAI = None
 
+# Safely import environment modules (No sys.exit(1) crashes)
 try:
     from wifi_har.environment import WiFiHAREnvironment, TASKS
     from models import WiFiHARAction
-except ImportError as e:
+except Exception as e:
     print(f"Import error: {e}", file=sys.stderr)
-    sys.exit(1)
+    TASKS = ["single_classify", "sequence_classify", "fall_detection"]
+    WiFiHAREnvironment = None
+    WiFiHARAction = None
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
@@ -113,7 +109,6 @@ static, walking, transition, or fall"""
 # ── Agent ─────────────────────────────────────────────────────────────────────
 
 def agent_act(observation_text: str, history: list) -> str:
-    # If OpenAI not available → fallback immediately
     client = get_client()
     if client is None:
         return rule_based(observation_text)
@@ -123,7 +118,7 @@ def agent_act(observation_text: str, history: list) -> str:
     messages.append({"role": "user", "content": observation_text})
 
     try:
-        resp = get_client().chat.completions.create(
+        resp = client.chat.completions.create(
             model=MODEL_NAME,
             messages=messages,
             max_tokens=10,
@@ -145,16 +140,12 @@ def agent_act(observation_text: str, history: list) -> str:
         return rule_based(observation_text)
 
     except Exception as e:
-        # Only here we fallback
         print("LLM ERROR:", e)
         return rule_based(observation_text)
 
 # ── Task runner ───────────────────────────────────────────────────────────────
 
 def run_task(task_name: str) -> dict:
-    env = WiFiHAREnvironment(task=task_name, seed=SEED)
-    obs = env.reset()
-
     history  = []
     rewards  = []
     steps    = 0
@@ -164,10 +155,16 @@ def run_task(task_name: str) -> dict:
 
     print(f"[START] task={task_name} env={BENCHMARK} model={MODEL_NAME}", flush=True)
 
+    # MASSIVE FIX: The entire environment connection is now inside the safety net
     try:
+        if WiFiHAREnvironment is None:
+            raise ImportError("WiFiHAREnvironment failed to load globally.")
+
+        env = WiFiHAREnvironment(task=task_name, seed=SEED)
+        obs = env.reset()
+
         done = False
         while not done:
-            #time.sleep(2)
             action_str = agent_act(obs.text, history)
 
             try:
@@ -204,11 +201,13 @@ def run_task(task_name: str) -> dict:
         success = score >= 0.5
 
     except Exception as e:
+        # CATCHES ALL NETWORK, PARSING, OR PORT TIMEOUT ERRORS
+        print(f"TASK ERROR: {e}", file=sys.stderr)
         traceback.print_exc(file=sys.stderr)
         score   = 0.0
         success = False
 
-    rewards_str = ",".join(f"{r:.2f}" for r in rewards)
+    rewards_str = ",".join(f"{r:.2f}" for r in rewards) if rewards else "0.0"
     print(
         f"[END] success={str(success).lower()} steps={steps} "
         f"score={score:.2f} rewards={rewards_str}",
@@ -228,7 +227,9 @@ def main():
     for r in results:
         print(f"  {r['task']}: score={r['score']:.3f}  steps={r['steps']}", file=sys.stderr)
         total += r["score"]
-    print(f"  Average: {total/len(results):.3f}", file=sys.stderr)
+    
+    if results:
+        print(f"  Average: {total/len(results):.3f}", file=sys.stderr)
 
 if __name__ == "__main__":
     main()
