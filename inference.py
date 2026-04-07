@@ -59,20 +59,37 @@ _client = None
 def rule_based(obs_text: str) -> str:
     text = obs_text.lower()
 
-    if "very high" in text and "very strong" in text:
+    # FALL (aggressive detection)
+    if (
+        "very high" in text
+        or "strong doppler" in text
+        or ">2.5" in text
+        or "extremely variable" in text
+    ):
         return "fall"
 
-    if "strong (" in text or "moderate (" in text:
-        if "movement intensity: high" in text or "very high" in text:
-            return "walking"
+    # WALKING
+    if (
+        "moderate doppler" in text
+        or "1-3 m/s" in text
+        or "movement intensity: high" in text
+    ):
+        return "walking"
 
-    if "moderate" in text:
+    # TRANSITION
+    if (
+        "0.3-1.2" in text
+        or "low doppler" in text
+        or "moderate intensity" in text
+    ):
         return "transition"
 
     return "static"
 
 def get_client():
     global _client
+    if OpenAI is None:
+        return None
     if _client is None:
         _client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
     return _client
@@ -97,7 +114,8 @@ static, walking, transition, or fall"""
 
 def agent_act(observation_text: str, history: list) -> str:
     # If OpenAI not available → fallback immediately
-    if OpenAI is None:
+    client = get_client()
+    if client is None:
         return rule_based(observation_text)
 
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
