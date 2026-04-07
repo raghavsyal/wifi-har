@@ -176,7 +176,7 @@ curl -X POST http://localhost:7860/reset \
 
 # Step
 curl -X POST http://localhost:7860/step \
-  -H "Content-Type: application/json" -d '{"activity": "walking"}'
+  -H "Content-Type: application/json" -d '{"action": {"activity": "walking"}}'
 
 # State
 curl http://localhost:7860/state
