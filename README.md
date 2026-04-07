@@ -21,11 +21,11 @@ tags:
 
 ## Overview
 
-**WiFi-HAR** is a passive indoor human activity recognition environment for training and evaluating AI agents. Human movement perturbs WiFi signals in measurable ways — this environment simulates those perturbations as structured natural-language observations that LLM agents can reason about directly.
+**WiFi-HAR** is a passive indoor human activity recognition environment for training and evaluating AI agents. Human movement perturbs WiFi signals in measurable ways, this environment simulates those perturbations as structured natural-language observations that LLM agents can reason about directly.
 
 Unlike camera-based systems, WiFi sensing is **privacy-preserving** and requires **no wearable devices**, making it practical for eldercare monitoring, smart home automation, and security applications.
 
-Classical rule-based approaches break down on real CSI signals due to noise and environment variability — making this a genuinely appropriate domain for learned agents.
+Classical rule-based approaches break down on real CSI signals due to noise and environment variability. making this a genuinely appropriate domain for learned agents.
 
 ---
 
@@ -40,8 +40,8 @@ The agent receives structured descriptions of processed Channel State Informatio
 - Learned temporal representations outperform handcrafted rules
 
 **Why this genuinely challenges LLMs:**
-- Task 2 requires temporal consistency — classifying each window independently without tracking context underperforms
-- Task 3 requires anticipatory reasoning — the agent must recognise pre-fall walking patterns and detect the event early under high noise
+- Task 2 requires temporal consistency - classifying each window independently without tracking context underperforms
+- Task 3 requires anticipatory reasoning - the agent must recognise pre-fall walking patterns and detect the event early under high noise
 
 ---
 
