@@ -24,8 +24,8 @@ from models import WiFiHARAction
 
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME   = os.getenv("MODEL_NAME",   "Qwen/Qwen2.5-72B-Instruct")
-API_KEY      = os.getenv("HF_TOKEN") or os.getenv("API_KEY", "placeholder")
-BENCHMARK    = "wifi-har"
+HF_TOKEN     = os.getenv("HF_TOKEN") 
+API_KEY      = HF_TOKENBENCHMARK    = "wifi-har"
 SEED         = 42
 
 client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
