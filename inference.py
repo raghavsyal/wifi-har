@@ -24,12 +24,25 @@ from models import WiFiHARAction
 
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME   = os.getenv("MODEL_NAME",   "Qwen/Qwen2.5-72B-Instruct")
-HF_TOKEN     = os.getenv("HF_TOKEN") 
-API_KEY      = HF_TOKEN
+HF_TOKEN     = os.getenv("HF_TOKEN")
+
+API_KEY      = (
+    HF_TOKEN or
+    os.getenv("API_KEY") or
+    os.getenv("OPENAI_API_KEY") or
+    "placeholder"
+)
+
 BENCHMARK    = "wifi-har"
 SEED         = 42
 
-client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+_client = None
+
+def get_client() -> OpenAI:
+    global _client
+    if _client is None:
+        _client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+    return _client
 
 # ── System prompt ─────────────────────────────────────────────────────────────
 
@@ -51,10 +64,10 @@ static, walking, transition, or fall"""
 
 def agent_act(observation_text: str, history: list) -> str:
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-    messages.extend(history[-8:])  # keep last 4 turns
+    messages.extend(history[-8:])
     messages.append({"role": "user", "content": observation_text})
     try:
-        resp = client.chat.completions.create(
+        resp = get_client().chat.completions.create(
             model=MODEL_NAME,
             messages=messages,
             max_tokens=10,
@@ -65,7 +78,7 @@ def agent_act(observation_text: str, history: list) -> str:
             if label in raw:
                 return label
         return raw
-    except Exception as e:
+    except Exception:
         return "static"
 
 # ── Task runner ───────────────────────────────────────────────────────────────
@@ -74,12 +87,12 @@ def run_task(task_name: str) -> dict:
     env = WiFiHAREnvironment(task=task_name, seed=SEED)
     obs = env.reset()
 
-    history   = []
-    rewards   = []
-    steps     = 0
-    score     = 0.0
-    success   = False
-    last_err  = None
+    history  = []
+    rewards  = []
+    steps    = 0
+    score    = 0.0
+    success  = False
+    last_err = None
 
     print(f"[START] task={task_name} env={BENCHMARK} model={MODEL_NAME}", flush=True)
 
@@ -112,15 +125,14 @@ def run_task(task_name: str) -> dict:
                 flush=True,
             )
 
-            history.append({"role": "user",      "content": obs.text})
-            history.append({"role": "assistant",  "content": action_str})
+            history.append({"role": "user",     "content": obs.text})
+            history.append({"role": "assistant", "content": action_str})
 
             if not done:
                 obs = next_obs
 
-        # Final score from state
-        state = env.state
-        score = state.metadata.get("episode_score", 0.0) if state.metadata else 0.0
+        state   = env.state
+        score   = state.metadata.get("episode_score", 0.0) if state.metadata else 0.0
         success = score >= 0.5
 
     except Exception as e:
