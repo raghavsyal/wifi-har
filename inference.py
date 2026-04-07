@@ -109,7 +109,7 @@ def run_task(task_name: str) -> dict:
     try:
         done = False
         while not done:
-            time.sleep(2)
+            #time.sleep(2)
             action_str = agent_act(obs.text, history)
 
             try:
