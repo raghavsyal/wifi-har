@@ -41,8 +41,8 @@ MODEL_NAME   = os.getenv("MODEL_NAME",   "Qwen/Qwen2.5-72B-Instruct")
 HF_TOKEN     = os.getenv("HF_TOKEN")
 
 API_KEY      = (
-    HF_TOKEN or
     os.getenv("API_KEY") or
+    HF_TOKEN or
     os.getenv("OPENAI_API_KEY") or
     "placeholder"
 )
