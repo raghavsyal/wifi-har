@@ -15,6 +15,16 @@ import sys
 import time
 import traceback
 
+import subprocess
+import sys
+
+# Auto-install required packages if missing
+for pkg in ["openai", "openenv-core", "httpx", "pydantic"]:
+    try:
+        __import__(pkg.replace("-", "_"))
+    except ImportError:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", pkg, "--quiet"])
+
 from openai import OpenAI
 
 from wifi_har.environment import WiFiHAREnvironment, TASKS
