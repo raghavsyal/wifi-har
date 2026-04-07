@@ -190,10 +190,10 @@ Tested with `Qwen/Qwen2.5-72B-Instruct`, seed=42:
 
 | Task | Score |
 |---|---|
-| single_classify | ~0.85 |
-| sequence_classify | ~0.62 |
-| fall_detection | ~0.41 |
-| **Average** | **~0.63** |
+| single_classify | ~0.300 |
+| sequence_classify | ~0.650 |
+| fall_detection | ~0.272 |
+| **Average** | **~0.407** |
 
 ---
 
