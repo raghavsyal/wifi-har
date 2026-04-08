@@ -15,28 +15,17 @@ import sys
 import time
 import traceback
 
-import subprocess
+import glob
 
-# ── Install & import openai v1+ ──────────────────────────────────────────────
-try:
-    from openai import OpenAI
-except Exception:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "openai>=1.12.0", "--quiet"])
-    # Purge every cached openai submodule so the fresh version loads cleanly
-    for _mod in list(sys.modules):
-        if _mod == "openai" or _mod.startswith("openai."):
-            del sys.modules[_mod]
-    import importlib
-    importlib.invalidate_caches()
-    from openai import OpenAI          # import immediately after install
+# ── Make uv-installed packages visible to bare python ─────────────────────────
+# Docker's `uv sync` puts deps in /app/.venv/  — the Dockerfile sets PATH so
+# `python` resolves to the venv Python.  This glob is a belt-and-suspenders
+# fallback in case PATH wasn't applied.
+for _p in glob.glob("/app/.venv/lib/python*/site-packages"):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
-# ── Install remaining deps ───────────────────────────────────────────────────
-reqs = {"openenv-core": "openenv", "httpx": "httpx", "pydantic": "pydantic"}
-for pkg, mod in reqs.items():
-    try:
-        __import__(mod)
-    except ImportError:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", pkg, "--quiet"])
+from openai import OpenAI
 
 # Ensure local modules are importable
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
