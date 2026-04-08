@@ -255,12 +255,14 @@ The rule-based fallback uses heuristics on observation text (movement intensity 
 
 ```
 wifi-har/
-├── inference.py          # Baseline inference script
+├── inference.py          # Baseline inference / demo script
 ├── models.py             # Pydantic action/observation models
 ├── openenv.yaml          # OpenEnv spec metadata
 ├── Dockerfile            # Container definition
 ├── pyproject.toml        # Project dependencies
+├── requirements.txt      # Python dependencies
 ├── uv.lock               # Locked dependency versions
+├── README.md             # Documentation
 ├── wifi_har/
 │   ├── __init__.py
 │   ├── environment.py    # Core environment logic
