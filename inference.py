@@ -166,13 +166,14 @@ def run_task(task_name: str) -> dict:
                 obs = next_obs
 
         state   = env.state
-        score   = state.metadata.get("episode_score", 0.0) if state.metadata else 0.0
+        score   = state.metadata.get("episode_score", 0.0) if state.metadata else 0.001
+        score   = max(0.001, min(0.999, float(score)))
         success = score >= 0.5
 
     except Exception as e:
         print(f"TASK ERROR: {e}", file=sys.stderr)
         traceback.print_exc(file=sys.stderr)
-        score   = 0.0
+        score   = 0.001
         success = False
 
     rewards_str = ",".join(f"{r:.2f}" for r in rewards) if rewards else "0.0"
