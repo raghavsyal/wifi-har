@@ -14,23 +14,16 @@ import os
 import sys
 import time
 import traceback
-
 import glob
 
-# ── Make uv-installed packages visible to bare python ─────────────────────────
-# Docker's `uv sync` puts deps in /app/.venv/  — the Dockerfile sets PATH so
-# `python` resolves to the venv Python.  This glob is a belt-and-suspenders
-# fallback in case PATH wasn't applied.
 for _p in glob.glob("/app/.venv/lib/python*/site-packages"):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
 from openai import OpenAI
 
-# Ensure local modules are importable
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Safely import environment modules (No sys.exit(1) crashes)
 try:
     from wifi_har.environment import WiFiHAREnvironment, TASKS
     from models import WiFiHARAction
@@ -50,32 +43,15 @@ _client = None
 
 def rule_based(obs_text: str) -> str:
     text = obs_text.lower()
-
-    # FALL (aggressive detection)
-    if (
-        "very high" in text
-        or "strong doppler" in text
-        or ">2.5" in text
-        or "extremely variable" in text
-    ):
+    # FALL: very high intensity + extremely variable signal
+    if "very high" in text and "extremely variable" in text:
         return "fall"
-
-    # WALKING
-    if (
-        "moderate doppler" in text
-        or "1-3 m/s" in text
-        or "movement intensity: high" in text
-    ):
+    # WALKING: high intensity or moderate doppler profile
+    if "movement intensity: high" in text or "doppler profile: moderate" in text:
         return "walking"
-
-    # TRANSITION
-    if (
-        "0.3-1.2" in text
-        or "low doppler" in text
-        or "moderate intensity" in text
-    ):
+    # TRANSITION: moderate intensity or low doppler
+    if "movement intensity: moderate" in text or "doppler profile: low" in text:
         return "transition"
-
     return "static"
 
 def get_client():
@@ -149,7 +125,6 @@ def run_task(task_name: str) -> dict:
 
     print(f"[START] task={task_name} env={BENCHMARK} model={MODEL_NAME}", flush=True)
 
-    # MASSIVE FIX: The entire environment connection is now inside the safety net
     try:
         if WiFiHAREnvironment is None:
             raise ImportError("WiFiHAREnvironment failed to load globally.")
@@ -195,7 +170,6 @@ def run_task(task_name: str) -> dict:
         success = score >= 0.5
 
     except Exception as e:
-        # CATCHES ALL NETWORK, PARSING, OR PORT TIMEOUT ERRORS
         print(f"TASK ERROR: {e}", file=sys.stderr)
         traceback.print_exc(file=sys.stderr)
         score   = 0.0
