@@ -16,6 +16,8 @@ import time
 import traceback
 
 import subprocess
+
+# Ensure required packages are installed at runtime
 for pkg in ["openai", "openenv-core", "httpx", "pydantic"]:
     try:
         __import__(pkg.replace("-", "_"))
@@ -43,16 +45,7 @@ except Exception as e:
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
-MODEL_NAME   = os.getenv("MODEL_NAME",   "Qwen/Qwen2.5-72B-Instruct")
-HF_TOKEN     = os.getenv("HF_TOKEN")
-
-API_KEY      = (
-    os.getenv("API_KEY") or
-    HF_TOKEN or
-    os.getenv("OPENAI_API_KEY") or
-    "placeholder"
-)
+# (Environment variables are fetched dynamically within functions to avoid import-time caching issues)
 
 BENCHMARK    = "wifi-har"
 SEED         = 42
@@ -94,7 +87,22 @@ def get_client():
     if OpenAI is None:
         return None
     if _client is None:
-        _client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+        base_url = os.environ.get("API_BASE_URL", "https://router.huggingface.co/v1")
+        api_key = (
+            os.environ.get("API_KEY") or
+            os.environ.get("OPENAI_API_KEY") or
+            os.environ.get("HF_TOKEN") or
+            "placeholder"
+        )
+        # Debug: log which endpoint and key source we're actually using
+        key_source = (
+            "API_KEY" if os.environ.get("API_KEY") else
+            "OPENAI_API_KEY" if os.environ.get("OPENAI_API_KEY") else
+            "HF_TOKEN" if os.environ.get("HF_TOKEN") else
+            "placeholder"
+        )
+        print(f"[DEBUG] OpenAI client → base_url={base_url}  key_source={key_source}", file=sys.stderr, flush=True)
+        _client = OpenAI(base_url=base_url, api_key=api_key)
     return _client
 
 # ── System prompt ─────────────────────────────────────────────────────────────
@@ -125,8 +133,9 @@ def agent_act(observation_text: str, history: list) -> str:
     messages.append({"role": "user", "content": observation_text})
 
     try:
+        model_name = os.environ.get("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
         resp = client.chat.completions.create(
-            model=MODEL_NAME,
+            model=model_name,
             messages=messages,
             max_tokens=10,
             temperature=0.1,
@@ -160,7 +169,8 @@ def run_task(task_name: str) -> dict:
     success  = False
     last_err = None
 
-    print(f"[START] task={task_name} env={BENCHMARK} model={MODEL_NAME}", flush=True)
+    model_name = os.environ.get("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
+    print(f"[START] task={task_name} env={BENCHMARK} model={model_name}", flush=True)
 
     # MASSIVE FIX: The entire environment connection is now inside the safety net
     try:
