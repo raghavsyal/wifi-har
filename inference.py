@@ -15,6 +15,13 @@ import sys
 import time
 import traceback
 
+import subprocess
+for pkg in ["openai", "openenv-core", "httpx", "pydantic"]:
+    try:
+        __import__(pkg.replace("-", "_"))
+    except ImportError:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", pkg, "--quiet"])
+
 # Ensure local modules are importable
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
