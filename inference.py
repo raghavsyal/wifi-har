@@ -17,16 +17,20 @@ import traceback
 
 import subprocess
 
-# Ensure required packages are installed at runtime
+# ── Install & import openai v1+ ──────────────────────────────────────────────
 try:
     from openai import OpenAI
-except ImportError:
+except Exception:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "openai>=1.12.0", "--quiet"])
-    if "openai" in sys.modules:
-        del sys.modules["openai"]
+    # Purge every cached openai submodule so the fresh version loads cleanly
+    for _mod in list(sys.modules):
+        if _mod == "openai" or _mod.startswith("openai."):
+            del sys.modules[_mod]
     import importlib
     importlib.invalidate_caches()
+    from openai import OpenAI          # import immediately after install
 
+# ── Install remaining deps ───────────────────────────────────────────────────
 reqs = {"openenv-core": "openenv", "httpx": "httpx", "pydantic": "pydantic"}
 for pkg, mod in reqs.items():
     try:
@@ -36,9 +40,6 @@ for pkg, mod in reqs.items():
 
 # Ensure local modules are importable
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-# Import OpenAI directly (fail loudly if missing)
-from openai import OpenAI
 
 # Safely import environment modules (No sys.exit(1) crashes)
 try:
