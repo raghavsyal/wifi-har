@@ -18,7 +18,12 @@ import traceback
 import subprocess
 
 # Ensure required packages are installed at runtime
-reqs = {"openai": "openai", "openenv-core": "openenv", "httpx": "httpx", "pydantic": "pydantic"}
+try:
+    from openai import OpenAI
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "openai>=1.12.0", "--quiet"])
+
+reqs = {"openenv-core": "openenv", "httpx": "httpx", "pydantic": "pydantic"}
 for pkg, mod in reqs.items():
     try:
         __import__(mod)
@@ -41,9 +46,9 @@ except Exception as e:
     WiFiHAREnvironment = None
     WiFiHARAction = None
 
+API_KEY      = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
 API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
 MODEL_NAME   = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
-API_KEY      = os.getenv("API_KEY") or os.getenv("HF_TOKEN") or "placeholder"
 BENCHMARK    = "wifi-har"
 SEED         = 42
 
