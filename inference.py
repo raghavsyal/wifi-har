@@ -51,7 +51,7 @@ except Exception as e:
     WiFiHAREnvironment = None
     WiFiHARAction = None
 
-API_KEY      = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
+API_KEY      = os.environ.get("API_KEY") or os.environ.get("HF_TOKEN", "placeholder")
 API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
 MODEL_NAME   = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
 BENCHMARK    = "wifi-har"
