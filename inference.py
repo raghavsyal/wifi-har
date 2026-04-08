@@ -28,11 +28,8 @@ for pkg, mod in reqs.items():
 # Ensure local modules are importable
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Safely import OpenAI
-try:
-    from openai import OpenAI
-except Exception:
-    OpenAI = None
+# Import OpenAI directly (fail loudly if missing)
+from openai import OpenAI
 
 # Safely import environment modules (No sys.exit(1) crashes)
 try:
@@ -44,10 +41,9 @@ except Exception as e:
     WiFiHAREnvironment = None
     WiFiHARAction = None
 
-# ── Config ────────────────────────────────────────────────────────────────────
-
-# (Environment variables are fetched dynamically within functions to avoid import-time caching issues)
-
+API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
+MODEL_NAME   = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
+API_KEY      = os.getenv("API_KEY") or os.getenv("HF_TOKEN") or "placeholder"
 BENCHMARK    = "wifi-har"
 SEED         = 42
 
@@ -85,25 +81,8 @@ def rule_based(obs_text: str) -> str:
 
 def get_client():
     global _client
-    if OpenAI is None:
-        return None
     if _client is None:
-        base_url = os.environ.get("API_BASE_URL", "https://router.huggingface.co/v1")
-        api_key = (
-            os.environ.get("API_KEY") or
-            os.environ.get("OPENAI_API_KEY") or
-            os.environ.get("HF_TOKEN") or
-            "placeholder"
-        )
-        # Debug: log which endpoint and key source we're actually using
-        key_source = (
-            "API_KEY" if os.environ.get("API_KEY") else
-            "OPENAI_API_KEY" if os.environ.get("OPENAI_API_KEY") else
-            "HF_TOKEN" if os.environ.get("HF_TOKEN") else
-            "placeholder"
-        )
-        print(f"[DEBUG] OpenAI client → base_url={base_url}  key_source={key_source}", file=sys.stderr, flush=True)
-        _client = OpenAI(base_url=base_url, api_key=api_key)
+        _client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
     return _client
 
 # ── System prompt ─────────────────────────────────────────────────────────────
@@ -134,9 +113,8 @@ def agent_act(observation_text: str, history: list) -> str:
     messages.append({"role": "user", "content": observation_text})
 
     try:
-        model_name = os.environ.get("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
         resp = client.chat.completions.create(
-            model=model_name,
+            model=MODEL_NAME,
             messages=messages,
             max_tokens=10,
             temperature=0.1,
@@ -170,8 +148,7 @@ def run_task(task_name: str) -> dict:
     success  = False
     last_err = None
 
-    model_name = os.environ.get("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
-    print(f"[START] task={task_name} env={BENCHMARK} model={model_name}", flush=True)
+    print(f"[START] task={task_name} env={BENCHMARK} model={MODEL_NAME}", flush=True)
 
     # MASSIVE FIX: The entire environment connection is now inside the safety net
     try:
