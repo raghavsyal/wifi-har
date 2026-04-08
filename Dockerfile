@@ -2,16 +2,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install uv for fast dependency resolution
 RUN pip install --no-cache-dir uv
 
-# Copy dependency files first for layer caching
 COPY pyproject.toml uv.lock README.md ./
 
-# Install all dependencies
 RUN uv sync --frozen --no-dev
 
-# Make uv's venv the default python so `python inference.py` sees all deps
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Copy source
@@ -22,7 +18,6 @@ COPY inference.py ./
 COPY openenv.yaml ./
 COPY README.md    ./
 
-# HF Spaces runs as non-root user (uid 1000)
 RUN useradd -m -u 1000 appuser && chown -R appuser /app
 USER appuser
 
