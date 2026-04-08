@@ -8,7 +8,7 @@ from typing import List, Tuple
 
 def clamp_score(score: float) -> float:
     """Clamp score to strictly within (0, 1) — never exactly 0.0 or 1.0."""
-    return max(0.001, min(0.999, float(score)))
+    return max(0.01, min(0.99, float(score)))
 
 VALID_ACTIONS = {"static", "walking", "transition", "fall"}
 
@@ -51,7 +51,7 @@ def grade_single_classify(action: str, ground_truth: str) -> Tuple[float, str]:
 
 def grade_sequence_classify(actions: List[str], ground_truths: List[str]) -> Tuple[float, str]:
     if len(actions) != len(ground_truths):
-        return 0.001, f"Length mismatch: {len(actions)} vs {len(ground_truths)}"
+        return 0.01, f"Length mismatch: {len(actions)} vs {len(ground_truths)}"
 
     step_scores = [single_step_score(a, g) for a, g in zip(actions, ground_truths)]
     base = sum(step_scores) / len(step_scores)
