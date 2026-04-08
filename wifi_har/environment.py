@@ -196,8 +196,7 @@ class WiFiHAREnvironment(Environment):
                 self._config["max_steps"],
             )
         else:
-            score = 0.001 # Changed from 0.0
-            
-        # THE FIX: Clamp the score strictly between 0 and 1
+            score = 0.001
+        # Clamp strictly within (0, 1)
         score = max(0.001, min(0.999, float(score)))
         return round(score, 4)
