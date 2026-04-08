@@ -22,6 +22,10 @@ try:
     from openai import OpenAI
 except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "openai>=1.12.0", "--quiet"])
+    if "openai" in sys.modules:
+        del sys.modules["openai"]
+    import importlib
+    importlib.invalidate_caches()
 
 reqs = {"openenv-core": "openenv", "httpx": "httpx", "pydantic": "pydantic"}
 for pkg, mod in reqs.items():
