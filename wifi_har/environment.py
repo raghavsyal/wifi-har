@@ -87,7 +87,7 @@ class WiFiHAREnvironment(Environment):
         max_steps = self._config["max_steps"]
 
         if self._task == "single_classify":
-            activity = random.choice(["static", "walking", "transition"])
+            activity = random.choice(["static", "walking", "transition", "fall"])
             self._ground_truths = [activity]
             self._observations = [generate_observation(activity, noise_level=noise)]
 
