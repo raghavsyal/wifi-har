@@ -11,6 +11,9 @@ COPY pyproject.toml uv.lock README.md ./
 # Install all dependencies
 RUN uv sync --frozen --no-dev
 
+# Make uv's venv the default python so `python inference.py` sees all deps
+ENV PATH="/app/.venv/bin:$PATH"
+
 # Copy source
 COPY wifi_har/   ./wifi_har/
 COPY server/     ./server/
