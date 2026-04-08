@@ -18,7 +18,12 @@ import traceback
 import subprocess
 
 # Ensure required packages are installed at runtime
-reqs = {"openai": "openai", "openenv-core": "openenv", "httpx": "httpx", "pydantic": "pydantic"}
+try:
+    from openai import OpenAI
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "openai>=1.12.0", "--quiet"])
+
+reqs = {"openenv-core": "openenv", "httpx": "httpx", "pydantic": "pydantic"}
 for pkg, mod in reqs.items():
     try:
         __import__(mod)
