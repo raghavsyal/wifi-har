@@ -1,9 +1,14 @@
 """
 Deterministic graders for WiFi-HAR tasks.
-All return scores in [0.0, 1.0].
+All return scores in (0, 1) — strictly between 0 and 1.
 """
 
 from typing import List, Tuple
+
+
+def clamp_score(score: float) -> float:
+    """Clamp score to strictly within (0, 1) — never exactly 0.0 or 1.0."""
+    return max(0.001, min(0.999, float(score)))
 
 VALID_ACTIONS = {"static", "walking", "transition", "fall"}
 
@@ -41,12 +46,12 @@ def grade_single_classify(action: str, ground_truth: str) -> Tuple[float, str]:
         info = f"Partial: predicted '{norm}', truth '{ground_truth}' (related)"
     else:
         info = f"Wrong: predicted '{norm}', truth '{ground_truth}'"
-    return round(score, 4), info
+    return round(clamp_score(score), 4), info
 
 
 def grade_sequence_classify(actions: List[str], ground_truths: List[str]) -> Tuple[float, str]:
     if len(actions) != len(ground_truths):
-        return 0.0, f"Length mismatch: {len(actions)} vs {len(ground_truths)}"
+        return 0.001, f"Length mismatch: {len(actions)} vs {len(ground_truths)}"
 
     step_scores = [single_step_score(a, g) for a, g in zip(actions, ground_truths)]
     base = sum(step_scores) / len(step_scores)
@@ -57,7 +62,7 @@ def grade_sequence_classify(actions: List[str], ground_truths: List[str]) -> Tup
     partial = sum(1 for s in step_scores if 0 < s < 1.0)
     wrong = sum(1 for s in step_scores if s == 0.0)
     info = f"{correct}/{len(ground_truths)} correct, {partial} partial, {wrong} wrong. Score={final:.3f}"
-    return round(final, 4), info
+    return round(clamp_score(final), 4), info
 
 
 def grade_fall_detection(
@@ -110,7 +115,7 @@ def grade_fall_detection(
         detection_score = max(0.0, raw - fa_penalty)
         det_info = f"Detected@{detected_at}(latency={latency})"
 
-    final = round(min(1.0, pre_score + detection_score + post_score), 4)
+    final = round(clamp_score(pre_score + detection_score + post_score), 4)
     info  = (
         f"{det_info} | pre={pre_score:.3f} det={detection_score:.3f} "
         f"post={post_score:.3f} fa={false_alarms} final={final:.3f}"
